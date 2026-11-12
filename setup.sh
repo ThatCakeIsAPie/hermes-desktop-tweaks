@@ -148,7 +148,7 @@ APPLIED=0
 APP_READY=0 # the checkout carries every app change (now or from an earlier run)
 
 step_app() {
-  local up tip base commits branch start local_subjects c subject missing="" count=0 created=0
+  local up tip base commits branch start local_subjects c subject missing="" count=0 created=0 kept=""
   if ! command -v git >/dev/null 2>&1 || [ ! -d "${SRC}/.git" ]; then
     report "App" "skipped: ${SRC} is not a git checkout of Hermes, so its app cannot be rebuilt from here"
     return 0
@@ -203,8 +203,10 @@ step_app() {
   start=$(git -C "${SRC}" rev-parse HEAD)
   if [ "${branch}" != "${FORK_BRANCH}" ]; then
     if git -C "${SRC}" show-ref --verify --quiet "refs/heads/${FORK_BRANCH}"; then
-      report "App" "skipped: a local '${FORK_BRANCH}' branch exists but is not checked out (on '${branch:-detached HEAD}'); switch to it or delete it, then run this again"
-      return 0
+      # Left behind by an earlier run, then a Hermes update moved the checkout
+      # off it. Keep it under another name and rebuild the branch from here.
+      kept="${FORK_BRANCH}-before-$(date +%Y%m%d-%H%M%S)"
+      git -C "${SRC}" branch -q -m "${FORK_BRANCH}" "${kept}"
     fi
     git -C "${SRC}" switch -q -c "${FORK_BRANCH}"
     created=1
@@ -226,6 +228,7 @@ step_app() {
           git -C "${SRC}" switch -q --detach "${start}"
         fi
         git -C "${SRC}" branch -q -D "${FORK_BRANCH}"
+        [ -z "${kept}" ] || git -C "${SRC}" branch -q -m "${kept}" "${FORK_BRANCH}"
       fi
       report "App" "FAILED: '$(git -C "${SRC}" log -1 --format=%s "${c}")' does not apply to this device's Hermes version ($(git -C "${SRC}" describe --tags --always "${start}" 2>/dev/null)). ${count} change(s) applied before it."
       APPLIED=${count}
@@ -234,7 +237,7 @@ step_app() {
   done
   APPLIED=${count}
   APP_READY=1
-  report "App" "applied ${count} change(s) on branch '${FORK_BRANCH}'"
+  report "App" "applied ${count} change(s) on branch '${FORK_BRANCH}'${kept:+ (the earlier one is kept as '${kept}')}"
 }
 
 step_build() {

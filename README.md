@@ -54,7 +54,8 @@ The app changes (in the fork, not in this repo):
 
 - **Updating Hermes afterwards.** The app changes sit on a local `dispatcher-ui` branch in
   `~/.hermes/hermes-agent`, so `main` still matches upstream. After a Hermes update, run the
-  setup command again to re-apply and rebuild.
+  setup command again: if the update moved the checkout off that branch, it re-applies the
+  changes on the new version and rebuilds.
 - **If a change does not apply.** The app step stops, puts the checkout back as it was and says
   which change failed. That means the device's Hermes version has moved on in the same code and the
   fork needs updating first. Bot Kit and the plugins are installed regardless.
