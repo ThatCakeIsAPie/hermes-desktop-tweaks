@@ -19,6 +19,7 @@ Run it again any time to pick up new tweaks. It skips whatever is already done.
 | Plugins | Copies the plugins in this repo into `~/.hermes/desktop-plugins/`. |
 | App | Applies my changes to Hermes itself (the `dispatcher-ui` branch of [my fork](https://github.com/ThatCakeIsAPie/hermes-agent/tree/dispatcher-ui)) on top of the Hermes version the device already has, then rebuilds the desktop app. The rebuild takes about 10 minutes, and an open Hermes window closes when it finishes: reopen it. |
 | Buttons | On a tiling window manager (Hyprland, sway, niri), turns off the app's own minimize, maximize and close buttons. |
+| Steering | Sets `display.busy_input_mode: steer` for the main profile and every bot on the device, so a message sent while a bot is working goes into the running reply instead of waiting behind it. |
 
 Options go after `bash -s --`:
 
@@ -35,6 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/ThatCakeIsAPie/hermes-desktop-tweak
 | `--rebuild` | Rebuild even when nothing new was applied. |
 | `--hide-window-buttons` | Turn the window buttons off on any Linux desktop. |
 | `--keep-window-buttons` | Never touch the window buttons. |
+| `--no-steer` | Leave each profile's busy-message setting alone. |
 
 ## What is in here
 

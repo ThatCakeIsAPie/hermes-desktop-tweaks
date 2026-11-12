@@ -16,6 +16,9 @@
 #                 Hermes window closes when the build finishes: reopen it)
 #   4. Buttons    on a tiling window manager (Hyprland, sway, niri), turns off
 #                 the app's own minimize / maximize / close buttons
+#   5. Steering   a message sent while a bot is working goes into the running
+#                 reply instead of waiting behind it (display.busy_input_mode:
+#                 steer), for the main profile and every bot on this device
 #
 # Options (after `bash -s --` when piping):
 #   --plugins-only           step 2 only
@@ -25,6 +28,7 @@
 #   --rebuild                rebuild even when nothing new was applied
 #   --hide-window-buttons    step 4 on any Linux desktop
 #   --keep-window-buttons    never do step 4
+#   --no-steer               skip step 5
 #
 # Env: HERMES_HOME (default ~/.hermes).
 set -euo pipefail
@@ -50,17 +54,19 @@ DO_APP=1
 DO_BUILD=1
 FORCE_BUILD=0
 BUTTONS=auto
+DO_STEER=1
 
 for arg in "$@"; do
   case "${arg}" in
-    --plugins-only) DO_BOTKIT=0; DO_APP=0 ;;
+    --plugins-only) DO_BOTKIT=0; DO_APP=0; DO_STEER=0 ;;
+    --no-steer) DO_STEER=0 ;;
     --no-botkit) DO_BOTKIT=0 ;;
     --no-app) DO_APP=0 ;;
     --no-build) DO_BUILD=0 ;;
     --rebuild) FORCE_BUILD=1 ;;
     --hide-window-buttons) BUTTONS=hide ;;
     --keep-window-buttons) BUTTONS=keep ;;
-    -h|--help) sed -n '2,31p' "${BASH_SOURCE[0]:-/dev/null}" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,35p' "${BASH_SOURCE[0]:-/dev/null}" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "setup.sh: unknown option '${arg}' (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -288,6 +294,39 @@ step_buttons() {
   fi
 }
 
+# ── 5. Messages sent while a bot is working steer it ────────────────────────
+set_steer() { # set_steer <profile name>
+  if [ "$1" = "default" ]; then
+    HERMES_HOME="${HERMES_ROOT}" hermes config set display.busy_input_mode steer >/dev/null 2>&1
+  else
+    HERMES_HOME="${HERMES_ROOT}" hermes -p "$1" config set display.busy_input_mode steer >/dev/null 2>&1
+  fi
+}
+
+step_steer() {
+  local home name changed="" same="" failed=""
+  if ! command -v hermes >/dev/null 2>&1; then
+    report "Steering" "skipped: no 'hermes' command on PATH"
+    return 0
+  fi
+  for home in "${HERMES_ROOT}" "${HERMES_ROOT}"/profiles/*/; do
+    home="${home%/}"
+    [ -f "${home}/config.yaml" ] || continue
+    if [ "${home}" = "${HERMES_ROOT}" ]; then name="default"; else name=$(basename -- "${home}"); fi
+    if grep -qE '^[[:space:]]+busy_input_mode:[[:space:]]*"?steer"?[[:space:]]*$' "${home}/config.yaml"; then
+      same="${same} ${name}"
+    elif set_steer "${name}" \
+        && grep -qE '^[[:space:]]+busy_input_mode:[[:space:]]*"?steer"?[[:space:]]*$' "${home}/config.yaml"; then
+      changed="${changed} ${name}"
+    else
+      failed="${failed} ${name}"
+    fi
+  done
+  [ -z "${changed}" ] || report "Steering" "turned on for:${changed}"
+  [ -z "${same}" ] || report "Steering" "already on for:${same}"
+  [ -z "${failed}" ] || report "Steering" "FAILED for:${failed} (run: hermes -p <name> config set display.busy_input_mode steer)"
+}
+
 [ "${DO_BOTKIT}" -ne 1 ] || step_botkit
 step_plugins
 if [ "${DO_APP}" -eq 1 ]; then
@@ -295,6 +334,7 @@ if [ "${DO_APP}" -eq 1 ]; then
   step_buttons
   step_build
 fi
+[ "${DO_STEER}" -ne 1 ] || step_steer
 
 echo
 echo "Summary"
