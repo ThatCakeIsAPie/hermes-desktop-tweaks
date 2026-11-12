@@ -6,13 +6,18 @@
 // Plain ESM, loaded uncompiled by the Hermes desktop app.
 
 const ID = 'grokbot-tweaks'
-const VERSION = '1'
+const VERSION = '2'
 const STYLE_ID = 'grokbot-tweaks-style'
 
 // The override scopes everything under [data-gbo-root] (menus and popovers
 // carry the attribute too) and sets its palette at up to two-class
 // specificity, so `:root [data-gbo-root][data-gbo-root]` wins without
 // !important and regardless of which stylesheet loads first.
+//
+// Token names: the kit's source writes its reference palette as `--color-*`,
+// but renames every such variable to `--g-color-*` when it builds its
+// stylesheet (adaptBlock in its plugin.js). The `--g-` names are the live
+// ones; `--gbo-*` names are emitted as written.
 const SCOPE = ':root [data-gbo-root][data-gbo-root]'
 
 export const CSS = `
@@ -31,16 +36,16 @@ export const CSS = `
       light/dark switch already follows the theme. */
 ${SCOPE} {
   /* chat */
-  --color-bg-pane: var(--ui-chat-surface-background);
+  --g-color-bg-pane: var(--ui-chat-surface-background);
   --gbo-bg: var(--ui-chat-surface-background);
   /* roster */
-  --color-bg-sidebar: var(--ui-sidebar-surface-background);
+  --g-color-bg-sidebar: var(--ui-sidebar-surface-background);
   --gbo-sidebar: var(--ui-sidebar-surface-background);
   /* profile panel and window chrome */
-  --color-bg-chrome: var(--ui-bg-chrome);
+  --g-color-bg-chrome: var(--ui-bg-chrome);
   --gbo-panel-bg: var(--ui-bg-chrome);
   /* raised: cards, menus, composer, header pills */
-  --color-bg-elevated: var(--ui-bg-elevated);
+  --g-color-bg-elevated: var(--ui-bg-elevated);
   --gbo-card: var(--ui-bg-elevated);
   --gbo-popover: var(--ui-bg-elevated);
   --gbo-surface: var(--ui-bg-elevated);
@@ -48,12 +53,12 @@ ${SCOPE} {
   --gbo-composer-bg: var(--ui-bg-elevated);
   /* solid fills the kit hard-codes as greys: tint the themed surface with
      the theme's text colour by the same small steps */
-  --color-bg-elevated-hover: color-mix(in srgb, var(--ui-base) 8%, var(--ui-bg-elevated));
-  --color-bg-active-solid: color-mix(in srgb, var(--ui-base) 9%, var(--ui-bg-chrome));
-  --color-bubble-agent-flat: color-mix(in srgb, var(--ui-base) 8%, var(--ui-bg-chrome));
-  --color-code-block: color-mix(in srgb, var(--ui-base) 4%, var(--ui-bg-chrome));
-  --color-row-selected-solid: color-mix(in srgb, var(--ui-base) 9%, var(--ui-bg-sidebar));
-  --color-row-hover-solid: color-mix(in srgb, var(--ui-base) 5%, var(--ui-bg-sidebar));
+  --g-color-bg-elevated-hover: color-mix(in srgb, var(--ui-base) 8%, var(--ui-bg-elevated));
+  --g-color-bg-active-solid: color-mix(in srgb, var(--ui-base) 9%, var(--ui-bg-chrome));
+  --g-color-bubble-agent-flat: color-mix(in srgb, var(--ui-base) 8%, var(--ui-bg-chrome));
+  --g-color-code-block: color-mix(in srgb, var(--ui-base) 4%, var(--ui-bg-chrome));
+  --g-color-row-selected-solid: color-mix(in srgb, var(--ui-base) 9%, var(--ui-bg-sidebar));
+  --g-color-row-hover-solid: color-mix(in srgb, var(--ui-base) 5%, var(--ui-bg-sidebar));
 }
 `
 
