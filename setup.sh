@@ -7,8 +7,8 @@
 # or from a clone:  ./setup.sh
 #
 # What it does:
-#   1. Bot Kit    installs Grokbot Override from Hermes Bot Kit (pinned release,
-#                 installer checked against a known hash before it runs)
+#   1. Bot Kit    installs Grokbot Override (Hermes Bot Kit) from my fork: a
+#                 pinned build, checked against a known hash before it is used
 #   2. Plugins    copies this repo's plugins into <hermes home>/desktop-plugins
 #   3. App        applies the Hermes app changes from the fork's dispatcher-ui
 #                 branch on top of the Hermes version this device already has,
@@ -36,10 +36,13 @@ set -euo pipefail
 REPO_RAW="https://raw.githubusercontent.com/ThatCakeIsAPie/hermes-desktop-tweaks/main"
 PLUGINS="btw-dismiss grokbot-tweaks"
 
-BOTKIT_REF="v2026.11.10.4"
-BOTKIT_INSTALLER="https://raw.githubusercontent.com/thomasbek3/hermes-bot-kit/${BOTKIT_REF}/install.sh"
-# sha256 of that release's install.sh as reviewed. A different file is not run.
-BOTKIT_INSTALLER_SHA256="a0ed1b34f65c5784e344d25b169cca4594aed4e7d8cd88cca21bff1e2aed8062"
+# Grokbot Override is installed from my fork of Hermes Bot Kit: release
+# v2026.11.10.4 plus an Effort field in the model picker (branch effort-field).
+# Pinned to one commit, and the file must match this hash or it is not installed.
+BOTKIT_LABEL="v2026.11.10.4 + Effort field"
+BOTKIT_COMMIT="a70ce6d54a4cf70c132f54936d6abba8dab94825"
+BOTKIT_PLUGIN_URL="https://raw.githubusercontent.com/ThatCakeIsAPie/hermes-bot-kit/${BOTKIT_COMMIT}/grokbot-override/plugin.js"
+BOTKIT_PLUGIN_SHA256="b50089df307bf0be88010e9b669f81768ed427512c9c2a88a313eabd06482734"
 
 UPSTREAM_URL="https://github.com/NousResearch/hermes-agent.git"
 FORK_URL="https://github.com/ThatCakeIsAPie/hermes-agent.git"
@@ -102,22 +105,25 @@ fi
 
 # ── 1. Bot Kit ───────────────────────────────────────────────────────────────
 step_botkit() {
-  local file="${TMP}/botkit-install.sh" actual
-  if ! curl -fsSL "${BOTKIT_INSTALLER}" -o "${file}"; then
-    report "Bot Kit" "FAILED: could not download the ${BOTKIT_REF} installer"
+  local file="${TMP}/grokbot-override.plugin.js" dest="${PLUGIN_ROOT}/grokbot-override/plugin.js" actual
+  if ! curl -fsSL "${BOTKIT_PLUGIN_URL}" -o "${file}"; then
+    report "Bot Kit" "FAILED: could not download Grokbot Override (${BOTKIT_LABEL})"
     return 0
   fi
   actual=$(sha256_of "${file}")
-  if [ "${actual}" != "${BOTKIT_INSTALLER_SHA256}" ]; then
-    report "Bot Kit" "FAILED: installer does not match the reviewed copy (got ${actual}); not run"
+  if [ "${actual}" != "${BOTKIT_PLUGIN_SHA256}" ] || ! grep -q 'grokbot-override-style' "${file}"; then
+    report "Bot Kit" "FAILED: the download does not match the pinned build (got ${actual}); not installed"
     return 0
   fi
-  if KIT_SKIP_COMPUTER=1 HERMES_HOME="${HERMES_ROOT}" bash "${file}" > "${TMP}/botkit.log" 2>&1; then
-    report "Bot Kit" "Grokbot Override ${BOTKIT_REF} installed"
-  else
-    report "Bot Kit" "FAILED: its installer exited with an error:"
-    sed 's/^/    /' "${TMP}/botkit.log" | tail -n 8
+  if cmp -s "${file}" "${dest}" 2>/dev/null; then
+    report "Bot Kit" "Grokbot Override already up to date (${BOTKIT_LABEL})"
+    return 0
   fi
+  mkdir -p "$(dirname -- "${dest}")"
+  # One previous copy is kept beside it; the app only loads plugin.js.
+  [ ! -f "${dest}" ] || cp "${dest}" "${dest}.previous"
+  cp "${file}" "${dest}"
+  report "Bot Kit" "Grokbot Override installed (${BOTKIT_LABEL})"
 }
 
 # ── 2. This repo's plugins ───────────────────────────────────────────────────
